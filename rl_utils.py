@@ -37,6 +37,7 @@ def train_on_policy_agent(env, agent, num_episodes):
                 state = env.reset()
                 done = False
                 while not done:
+                    print("while")
                     action = agent.take_action(state)
                     next_state, reward, done, _ = env.step(action)
                     transition_dict['states'].append(state)
@@ -46,6 +47,9 @@ def train_on_policy_agent(env, agent, num_episodes):
                     transition_dict['dones'].append(done)
                     state = next_state
                     episode_return += reward
+                print("done")
+                temp = env.get_usage()
+                print(temp)
                 return_list.append(episode_return)
                 agent.update(transition_dict)
                 if (i_episode+1) % 10 == 0:
@@ -60,10 +64,14 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
             for i_episode in range(int(num_episodes/10)):
                 episode_return = 0
                 state = env.reset()
+                # state = torch.tensor(state)
+                state = state.reshape(-1)
                 done = False
                 while not done:
                     action = agent.take_action(state)
-                    next_state, reward, done, _ = env.step(action)
+                    next_state, reward, done = env.step(action)
+                    # next_state = torch.tensor(next_state)
+                    next_state = next_state.reshape(-1)
                     replay_buffer.add(state, action, reward, next_state, done)
                     state = next_state
                     episode_return += reward

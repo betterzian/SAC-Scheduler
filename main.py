@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 import matplotlib.pyplot as plt
 import rl_utils
+import env
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
@@ -61,7 +62,7 @@ class SAC:
         self.device = device
 
     def take_action(self, state):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        state = torch.tensor(np.array([state]), dtype=torch.float).to(self.device)
         probs = self.actor(state)
         action_dist = torch.distributions.Categorical(probs)
         action = action_dist.sample()
@@ -85,12 +86,12 @@ class SAC:
 
     def update(self, transition_dict):
         states = torch.tensor(transition_dict['states'],dtype=torch.float).to(self.device)
-        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(
-            self.device)  # 动作不再是float类型
+        actions = torch.tensor(transition_dict['actions']).view(-1, 1).to(self.device)  # 动作不再是float类型
         rewards = torch.tensor(transition_dict['rewards'],dtype=torch.float).view(-1, 1).to(self.device)
         next_states = torch.tensor(transition_dict['next_states'],dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'],dtype=torch.float).view(-1, 1).to(self.device)
-
+        # print(actions)
+        # print(rewards)
         # 更新两个Q网络
         td_target = self.calc_target(rewards, next_states, dones)
         critic_1_q_values = self.critic_1(states).gather(1, actions)
@@ -138,15 +139,20 @@ if __name__ == "__main__":
     batch_size = 64
     target_entropy = -1
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    env_name = 'CartPole-v0'
-    env = gym.make(env_name)
+    env_name = 'test'
+    env = env.ENV()
+    # env_name = 'CartPole-v1'
+    # env = gym.make(env_name)
     # 建立环境
     random.seed(0)
     np.random.seed(0)
     torch.manual_seed(0)
+    
     replay_buffer = rl_utils.ReplayBuffer(buffer_size)
-    state_dim = env.observation_space.shape[0]
-    action_dim = env.action_space.n
+    state_dim = env.get_state_dim()
+    action_dim = env.get_action_dim()
+    # state_dim = env.observation_space.shape[0]
+    # action_dim = env.action_space.n
     agent = SAC(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, alpha_lr,target_entropy, tau, gamma, device)
 
     return_list = rl_utils.train_off_policy_agent(env, agent, num_episodes,replay_buffer, minimal_size,batch_size)
