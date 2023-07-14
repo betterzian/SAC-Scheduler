@@ -56,13 +56,13 @@ class ENV:
     def get_reward(self):
         if self.action == 0: #动作为0表示跳过此调度任务，不推荐，但后期为了能放下更多的任务，可以有此操作
             self.fail_count += 1
-            return -10000 ,True
+            return -500 ,True
         else:
             self.state[self.action] += self.state[0]
             if np.any(self.state[self.action] > self.__max_resource__[self.action]):
                 self.state[self.action] -= self.state[0]
                 self.fail_count += 1
-                return -50 ,False
+                return -500 ,False
             else:
                 temp = self.cal_reward()
                 return 100 * temp,True

@@ -37,7 +37,6 @@ def train_on_policy_agent(env, agent, num_episodes):
                 state = env.reset()
                 done = False
                 while not done:
-                    print("while")
                     action = agent.take_action(state)
                     next_state, reward, done, _ = env.step(action)
                     transition_dict['states'].append(state)
@@ -47,9 +46,6 @@ def train_on_policy_agent(env, agent, num_episodes):
                     transition_dict['dones'].append(done)
                     state = next_state
                     episode_return += reward
-                print("done")
-                temp = env.get_usage()
-                print(temp)
                 return_list.append(episode_return)
                 agent.update(transition_dict)
                 if (i_episode+1) % 10 == 0:
@@ -79,6 +75,8 @@ def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size
                         b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
                         transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
                         agent.update(transition_dict)
+                temp = env.get_usage()
+                print(temp)        
                 return_list.append(episode_return)
                 if (i_episode+1) % 10 == 0:
                     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
