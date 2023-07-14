@@ -1,6 +1,9 @@
 import numpy as np
 from copy import deepcopy
 
+__NUM__ = 50
+__TIMEBLOCK__ = 96
+
 class ENV:
 
     """
@@ -13,23 +16,13 @@ class ENV:
             收益最大
     """
 
-    def __init__(self, function_type_num=None, edge_server_num=None, **params):
-        self.params = deepcopy(params)
-        self.ecs = ECS(function_type_num, edge_server_num, **params['sys_hyper_params'])
-        self.ecs.gener_system()
-        self.function_deploy_stats = FunctionDeployStats(self.ecs.sys_info)
-
-        self.resource_usage_tasks_max_num = ResourceUsageTasksMaxNum(self.ecs.sys_info)
-        self.simulate_function_deploy_stats = FunctionDeployStats(self.ecs.sys_info)
-
-        self.cloud_execution = CloudExecution(self.ecs.sys_info, **params['off_hyper_params'])
-
-        # 任务卸载算法
-        self.max_benefit = MaxBenefit(self.ecs.sys_info, **params['off_hyper_params'])
-
+    def __init__(self, **params):
+        self.state = np.zeros((__NUM__,__TIMEBLOCK__))
+        self.__max_resource__ = np.zeros(shape=(__NUM__+1, __TIMEBLOCK__), dtype=float)
+        self.__max_resource__ += 100
         # state 为当前 slot 各边缘服务器的收到的 tasks 统计
         # state[0] 为任务量统计信息
-        self.state = np.zeros(shape=(3, edge_server_num, function_type_num), dtype=int)
+        self.state = np.zeros(shape=(__NUM__+1, __TIMEBLOCK__), dtype=float)
         self.action = None
         self.reward = None
         self.terminate = False
@@ -41,20 +34,15 @@ class ENV:
         Returns:
             self.state
         """
-        self.ecs.gener_tasks()
-        self.function_deploy_stats.reset()
 
-        self.simulate_function_deploy_stats.reset()
-
-        self.state[0] = self.ecs.calculate_tasks_statistics('heat')
-        self.state[-1] = self.function_deploy_stats.function_instance_nums
+        self.state = np.zeros(shape=(__NUM__+1, __TIMEBLOCK__), dtype=float)
         self.action = None
         self.reward = None
         self.terminate = False
 
         return self.state
 
-    def step(self, action: np.ndarray, action_type='resource_proportion', update_ecs=True):
+    def step(self, action: np.ndarray):
         """
         由函数实例在边缘服务器部署的数量调整动作对应更新各类函数实例在边缘服务器的部署状态
 
@@ -68,9 +56,6 @@ class ENV:
         """
         # 得到函数实例部署调整动作
         self.action = action
-
-        # 更新 state 中的函数实例部署状态
-        self.function_deploy_stats.update(action, action_type)
 
         # 动作是调整个数时，需要判断是否越界
         if action_type == 'alter_nums' and not self.is_valid():
@@ -142,39 +127,3 @@ class ENV:
                     return False
 
         return True
-
-    def plt_env(self, option='tasks', time_slot=None, save_dir='', is_show=True):
-        """
-        绘制环境 env 的信息
-
-        Args:
-            option (str): 'tasks', 'network', 'deploy'
-            time_slot (int):
-            save_dir (str): 保存路径
-            is_show (bool)
-        """
-        if time_slot is None and option != 'network':
-            raise TypeError("'time_slot' unspecified.")
-
-        if option == 'tasks':
-            self.ecs.plt_tasks_heatmap(time_slot, save_dir, is_show)
-        elif option == 'network':
-            self.ecs.plt_network_topology_graph(save_dir, is_show)
-        elif option == 'deploy':
-            self.function_deploy_stats.plt_function_instance_num_heatmap(time_slot, save_dir, '', is_show)
-        else:
-            raise TypeError("option can only be 'tasks', 'network' or 'deploy'.")
-
-    def save_env(self, option='sys_info', time_slot=None, save_dir='', save_npy=False):
-        """
-
-        Args:
-            option (str): 'sys_info'
-            time_slot (int):
-            save_dir (str): 保存路径
-            save_npy (bool): 是否另存为 .npy 格式
-        """
-        if option == 'sys_info':
-            self.ecs.save_sys_info(time_slot, save_dir, save_npy)
-        else:
-            raise TypeError("option can only be 'sys_info'.")
