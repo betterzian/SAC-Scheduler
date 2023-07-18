@@ -13,9 +13,9 @@ class ENV:
         self.__max_resource__ = np.zeros(shape=(__NUM__, __TIMEBLOCK__), dtype=float)
         self.__max_resource__ += 100
         self.__max_resource_sum__ = self.__max_resource__.sum()
-        # state 为当前 服务器 资源使用量
+        # state 为当前 服务器 资源空闲量
         # state[0] 为当前需要调度的任务资源需求量
-        self.state = np.random.uniform(1, 10, (__NUM__+1,__TIMEBLOCK__))
+        self.state = np.random.uniform(70, 90, (__NUM__+1,__TIMEBLOCK__))
         self.state[0] = np.random.uniform(0.1, 15, (1,__TIMEBLOCK__))
         self.fail_count = 0
         self.action = None
@@ -29,7 +29,7 @@ class ENV:
             self.state
         """
 
-        self.state = np.random.uniform(1, 10, (__NUM__+1,__TIMEBLOCK__))
+        self.state = np.random.uniform(70, 90, (__NUM__+1,__TIMEBLOCK__))
         self.state[0] = np.random.uniform(0.1, 15, (1,__TIMEBLOCK__))
         self.fail_count = 0
         self.action = None
@@ -58,18 +58,17 @@ class ENV:
             self.fail_count += 1
             return -500 ,True
         else:
-            self.state[self.action] += self.state[0]
-            if np.any(self.state[self.action] > self.__max_resource__[self.action]):
-                self.state[self.action] -= self.state[0]
+            if np.any(self.state[self.action] < self.state[0]):
                 self.fail_count += 1
                 return -500 ,False
             else:
+                self.state[self.action] -= self.state[0]
                 temp = self.cal_reward()
                 return 100 * temp,True
     
     def cal_reward(self):
-        x1 = 1 - self.state[self.action].sum() *1.0 / self.__max_resource__[self.action].sum()
-        x2 = 1 - (self.state[self.action].sum() - self.state[0].sum() )*1.0 / self.__max_resource__[self.action].sum()
+        x1 = self.state[self.action].sum() *1.0 / self.__max_resource__[self.action].sum()
+        x2 = (self.state[self.action].sum() + self.state[0].sum() )*1.0 / self.__max_resource__[self.action].sum()
         x1 = - math.log2(x1)
         x2 = - math.log2(x2)
         return x1 - x2
@@ -81,5 +80,5 @@ class ENV:
         return __NUM__
     
     def get_usage(self):
-        x = (self.state.sum() -self.state[0].sum()) *1.0 / self.__max_resource__.sum()
+        x = 1 - (self.state.sum() - self.state[0].sum()) *1.0 / self.__max_resource__.sum()
         return x
