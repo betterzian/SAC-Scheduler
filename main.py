@@ -90,7 +90,7 @@ class SAC:
         rewards = torch.tensor(transition_dict['rewards'],dtype=torch.float).view(-1, 1).to(self.device)
         next_states = torch.tensor(transition_dict['next_states'],dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'],dtype=torch.float).view(-1, 1).to(self.device)
-        print(actions.reshape(-1))
+        # print(actions.reshape(-1))
         # 更新两个Q网络
         td_target = self.calc_target(rewards, next_states, dones)
         critic_1_q_values = self.critic_1(states).gather(1, actions)
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     actor_lr = 1e-3
     critic_lr = 1e-2
     alpha_lr = 1e-2
-    num_episodes = 2000
+    num_episodes = 200
     hidden_dim = 128
     gamma = 0.98
     tau = 0.005  # 软更新参数
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     plt.ylabel('Returns')
     plt.title('SAC on {}'.format(env_name))
     plt.show()
-
+    #test
     mv_return = rl_utils.moving_average(return_list, 9)
     plt.plot(episodes_list, mv_return)
     plt.xlabel('Episodes')
